@@ -1,0 +1,23 @@
+* Catalog
+curl -i http://localhost:8080/osb/v2/catalog
+
+* Provision
+curl -i http://localhost:8080/osb/v2/service_instances/12345?accepts_incomplete=false \
+-X PUT \
+-H 'Content-Type: application/json' \
+-d @- << EOF
+{
+  "service_id": "service-id-here",
+  "plan_id": "plan-id-here",
+  "context": {
+    "platform": "cloudfoundry",
+    "some_field": "some-contextual-data"
+  },
+  "organization_guid": "org-guid-here",
+  "space_guid": "space-guid-here",
+  "parameters": {
+    "parameter1": 1,
+    "parameter2": "foo"
+  }
+}
+EOF
