@@ -1,12 +1,16 @@
 package sm
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 
-	. "github.com/dotchev/sm-plugins/sm/plugin/json"
 	"github.com/dotchev/sm-plugins/sm/plugin/osb"
 	"github.com/gorilla/mux"
+	"github.com/parnurzeal/gorequest"
 )
+
+var request = gorequest.New()
 
 type serviceManager struct {
 	*mux.Router
@@ -15,6 +19,7 @@ type serviceManager struct {
 
 type Options struct {
 	OSBPlugins []osb.Plugin
+	BrokerURL  string
 }
 
 func NewServiceManager(options *Options) *serviceManager {
@@ -31,42 +36,53 @@ func (sm *serviceManager) mountOSB(router *mux.Router) {
 	router.Path("/v2/catalog").Methods("GET").Handler(NewHTTPHandler(
 		sm.options.OSBPlugins,
 		(*osb.CatalogFetcher)(nil),
-		catalogHandler,
+		sm.catalogHandler,
 	))
 	router.Path("/v2/service_instances/{instance_id}").Methods("PUT").Handler(NewHTTPHandler(
 		sm.options.OSBPlugins,
 		(*osb.Provisioner)(nil),
-		provisionHandler,
+		sm.provisionHandler,
 	))
 }
 
-func catalogHandler(req *osb.Request) (*osb.Response, error) {
+func (sm *serviceManager) catalogHandler(req *osb.Request) (*osb.Response, error) {
 	log.Println("Catalog request:", req)
-	res := &osb.Response{
-		Body: Object{"services": Array{
-			Object{
-				"name": "dummy",
-				"id":   "123",
-				"plans": Array{
-					Object{
-						"name": "default",
-						"id":   "789",
-					},
-				},
-			},
-		}},
+
+	url := sm.options.BrokerURL + "/v2/catalog"
+	log.Printf("Requesting broker at %s", url)
+	resp, body, err := request.Get(url).End()
+	if err != nil {
+		log.Println(err)
 	}
+	var reply interface{}
+	json.Unmarshal([]byte(body), &reply)
+	res := &osb.Response{
+		Body:       reply,
+		StatusCode: resp.StatusCode,
+	}
+
 	log.Println("Catalog response:", res)
 	return res, nil
 }
 
-func provisionHandler(req *osb.Request) (*osb.Response, error) {
+func (sm *serviceManager) provisionHandler(req *osb.Request) (*osb.Response, error) {
 	log.Println("Provision request:", req)
-	res := &osb.Response{
-		Body: Object{
-			"dashboard_url": "http://service-dashboard",
-		},
+
+	url := fmt.Sprintf("%s/v2/service_instances/%s",
+		sm.options.BrokerURL,
+		req.Params["instance_id"])
+	log.Printf("Requesting broker at %s", url)
+	resp, body, err := request.Put(url).Send(req.Body).End()
+	if err != nil {
+		log.Println(err)
 	}
+	var reply interface{}
+	json.Unmarshal([]byte(body), &reply)
+	res := &osb.Response{
+		Body:       reply,
+		StatusCode: resp.StatusCode,
+	}
+
 	log.Println("Provision response:", res)
 	return res, nil
 }
