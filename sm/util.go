@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/dotchev/sm-plugins/sm/plugin/osb"
+	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
 // SendJSON writes a JSON value and sets the specified HTTP Status code
@@ -34,10 +34,12 @@ func ReadJSONBody(request *http.Request, value interface{}) error {
 	return nil
 }
 
-func readOSBRequest(request *http.Request) (*osb.Request, error) {
-	params := mux.Vars(request)             // get path parameters
-	for k, v := range request.URL.Query() { // get query parameters
-		params[k] = v[0]
+func readOSBRequest(request *http.Request) (*rest.Request, error) {
+	pathParams := mux.Vars(request)
+
+	queryParams := map[string]string{}
+	for k, v := range request.URL.Query() {
+		queryParams[k] = v[0]
 	}
 
 	var body interface{}
@@ -46,6 +48,10 @@ func readOSBRequest(request *http.Request) (*osb.Request, error) {
 			return nil, err
 		}
 	}
-	r := &osb.Request{Params: params, Body: body}
-	return r, nil
+
+	return &rest.Request{
+		PathParams:  pathParams,
+		QueryParams: queryParams,
+		Body:        body,
+	}, nil
 }

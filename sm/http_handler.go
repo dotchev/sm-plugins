@@ -3,44 +3,56 @@ package sm
 import (
 	"log"
 	"net/http"
-	"reflect"
 
 	. "github.com/dotchev/sm-plugins/sm/plugin/json"
-	"github.com/dotchev/sm-plugins/sm/plugin/osb"
+	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
 type HTTPHandler struct {
-	osbHandler osb.Handler
+	restHandler rest.Handler
 }
 
-func NewHTTPHandler(plugins []osb.Plugin, handlerInterface interface{},
-	defaultHandler osb.Handler) http.Handler {
+func NewHTTPHandler(plugins []rest.Plugin, route string,
+	defaultHandler rest.Handler) http.Handler {
 
-	handlerType := reflect.TypeOf(handlerInterface).Elem()
 	return HTTPHandler{
-		chainHandlers(plugins, handlerType, defaultHandler),
+		chain(plugins, route, defaultHandler),
 	}
 }
 
 func (hh HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	osbReq, err := readOSBRequest(req)
+	restReq, err := readOSBRequest(req)
 	if err != nil {
 		SendJSON(res, 400, Object{"description": err.Error()})
 		return
 	}
 
-	osbRes, err := hh.osbHandler(osbReq)
+	restRes, err := hh.restHandler(restReq)
 	if err != nil {
 		log.Println(err)
 		SendJSON(res, 500, Object{"description": err.Error()})
 		return
 	}
 
-	code := osbRes.StatusCode
+	code := restRes.StatusCode
 	if code == 0 {
 		code = 200
 	}
-	if err := SendJSON(res, code, osbRes.Body); err != nil {
+	if err := SendJSON(res, code, restRes.Body); err != nil {
 		log.Println(err)
+	}
+}
+
+func chain(plugins []rest.Plugin, route string, defaultHandler rest.Handler) rest.Handler {
+	if len(plugins) == 0 {
+		return defaultHandler
+	}
+	next := chain(plugins[1:], route, defaultHandler)
+	m := plugins[0].Middleware(route)
+	if m == nil {
+		return next
+	}
+	return func(req *rest.Request) (*rest.Response, error) {
+		return m(req, next)
 	}
 }

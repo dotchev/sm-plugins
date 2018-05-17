@@ -8,7 +8,7 @@ import (
 	"github.com/dotchev/sm-plugins/broker"
 	"github.com/dotchev/sm-plugins/plugins"
 	"github.com/dotchev/sm-plugins/sm"
-	"github.com/dotchev/sm-plugins/sm/plugin/osb"
+	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 	defer broker.Close()
 
 	m := sm.NewServiceManager(&sm.Options{
-		OSBPlugins: []osb.Plugin{
+		Plugins: []rest.Plugin{
 			plugins.DescriptionSetter{},
 			&plugins.Counter{},
 		},

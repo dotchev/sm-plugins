@@ -2,13 +2,24 @@ package plugins
 
 import (
 	. "github.com/dotchev/sm-plugins/sm/plugin/json"
-	"github.com/dotchev/sm-plugins/sm/plugin/osb"
+	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
 // DescriptionSetter is a plugin that sets the description of each service
 type DescriptionSetter struct{}
 
-func (DescriptionSetter) FetchCatalog(req *osb.Request, next osb.Handler) (*osb.Response, error) {
+func (d DescriptionSetter) Middleware(route string) rest.Middleware {
+	switch route {
+	case "osb/catalog":
+		return d.catalog
+	default:
+		return nil
+	}
+}
+
+func (DescriptionSetter) catalog(req *rest.Request, next rest.Handler) (*rest.Response, error) {
+
+	// call next middleware
 	res, err := next(req)
 
 	// modify response

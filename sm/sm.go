@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dotchev/sm-plugins/sm/plugin/osb"
+	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 	"github.com/gorilla/mux"
 	"github.com/parnurzeal/gorequest"
 )
@@ -18,8 +18,8 @@ type serviceManager struct {
 }
 
 type Options struct {
-	OSBPlugins []osb.Plugin
-	BrokerURL  string
+	Plugins   []rest.Plugin
+	BrokerURL string
 }
 
 func NewServiceManager(options *Options) *serviceManager {
@@ -34,18 +34,18 @@ func NewServiceManager(options *Options) *serviceManager {
 
 func (sm *serviceManager) mountOSB(router *mux.Router) {
 	router.Path("/v2/catalog").Methods("GET").Handler(NewHTTPHandler(
-		sm.options.OSBPlugins,
-		(*osb.CatalogFetcher)(nil),
+		sm.options.Plugins,
+		"osb/catalog",
 		sm.catalogHandler,
 	))
 	router.Path("/v2/service_instances/{instance_id}").Methods("PUT").Handler(NewHTTPHandler(
-		sm.options.OSBPlugins,
-		(*osb.Provisioner)(nil),
+		sm.options.Plugins,
+		"osb/provision",
 		sm.provisionHandler,
 	))
 }
 
-func (sm *serviceManager) catalogHandler(req *osb.Request) (*osb.Response, error) {
+func (sm *serviceManager) catalogHandler(req *rest.Request) (*rest.Response, error) {
 	log.Println("Catalog request:", req)
 
 	url := sm.options.BrokerURL + "/v2/catalog"
@@ -56,7 +56,7 @@ func (sm *serviceManager) catalogHandler(req *osb.Request) (*osb.Response, error
 	}
 	var reply interface{}
 	json.Unmarshal([]byte(body), &reply)
-	res := &osb.Response{
+	res := &rest.Response{
 		Body:       reply,
 		StatusCode: resp.StatusCode,
 	}
@@ -65,12 +65,12 @@ func (sm *serviceManager) catalogHandler(req *osb.Request) (*osb.Response, error
 	return res, nil
 }
 
-func (sm *serviceManager) provisionHandler(req *osb.Request) (*osb.Response, error) {
+func (sm *serviceManager) provisionHandler(req *rest.Request) (*rest.Response, error) {
 	log.Println("Provision request:", req)
 
 	url := fmt.Sprintf("%s/v2/service_instances/%s",
 		sm.options.BrokerURL,
-		req.Params["instance_id"])
+		req.PathParams["instance_id"])
 	log.Printf("Requesting broker at %s", url)
 	resp, body, err := request.Put(url).Send(req.Body).End()
 	if err != nil {
@@ -78,7 +78,7 @@ func (sm *serviceManager) provisionHandler(req *osb.Request) (*osb.Response, err
 	}
 	var reply interface{}
 	json.Unmarshal([]byte(body), &reply)
-	res := &osb.Response{
+	res := &rest.Response{
 		Body:       reply,
 		StatusCode: resp.StatusCode,
 	}
