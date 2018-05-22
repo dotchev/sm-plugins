@@ -17,9 +17,9 @@ func main() {
 	defer broker.Close()
 
 	m := sm.NewServiceManager(&sm.Options{
-		Plugins: []rest.Plugin{
-			plugins.DescriptionSetter{},
-			&plugins.Counter{},
+		Plugins: []*rest.Plugin{
+			plugins.DescriptionSetter(),
+			plugins.CounterPlugin(),
 		},
 		BrokerURL: broker.URL,
 	})

@@ -8,26 +8,26 @@ import (
 	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
+type finalHandler func(req *rest.Request) (*rest.Response, error)
+
 type HTTPHandler struct {
-	restHandler rest.Handler
+	handler finalHandler
 }
 
-func NewHTTPHandler(plugins []rest.Plugin, route string,
-	defaultHandler rest.Handler) http.Handler {
-
+func NewHTTPHandler(plugins []*rest.Handler, h finalHandler) http.Handler {
 	return HTTPHandler{
-		chain(plugins, route, defaultHandler),
+		chain(plugins, h),
 	}
 }
 
 func (hh HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	restReq, err := readOSBRequest(req)
+	restReq, err := readRequest(req)
 	if err != nil {
 		SendJSON(res, 400, Object{"description": err.Error()})
 		return
 	}
 
-	restRes, err := hh.restHandler(restReq)
+	restRes, err := hh.handler(restReq)
 	if err != nil {
 		log.Println(err)
 		SendJSON(res, 500, Object{"description": err.Error()})
@@ -43,16 +43,32 @@ func (hh HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func chain(plugins []rest.Plugin, route string, defaultHandler rest.Handler) rest.Handler {
-	if len(plugins) == 0 {
-		return defaultHandler
-	}
-	next := chain(plugins[1:], route, defaultHandler)
-	m := plugins[0].Middleware(route)
-	if m == nil {
-		return next
-	}
+func chain(plugins []*rest.Handler, h finalHandler) finalHandler {
 	return func(req *rest.Request) (*rest.Response, error) {
-		return m(req, next)
+		// preprocessing
+		for i := 0; i < len(plugins); i++ {
+			if plugins[i].ProcessRequest != nil {
+				if err := plugins[i].ProcessRequest(req); err != nil {
+					return nil, err
+				}
+			}
+		}
+
+		// default handler
+		res, err := h(req)
+		if err != nil {
+			return nil, err
+		}
+
+		// postprocessing
+		for i := len(plugins) - 1; i >= 0; i-- {
+			if plugins[i].ProcessResponse != nil {
+				if err := plugins[i].ProcessResponse(req, res); err != nil {
+					return nil, err
+				}
+			}
+		}
+
+		return res, nil
 	}
 }

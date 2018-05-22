@@ -34,7 +34,7 @@ func ReadJSONBody(request *http.Request, value interface{}) error {
 	return nil
 }
 
-func readOSBRequest(request *http.Request) (*rest.Request, error) {
+func readRequest(request *http.Request) (*rest.Request, error) {
 	pathParams := mux.Vars(request)
 
 	queryParams := map[string]string{}

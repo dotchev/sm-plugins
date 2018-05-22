@@ -7,52 +7,48 @@ import (
 	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
+func CounterPlugin() *rest.Plugin {
+	var cnt Counter
+	var plugin rest.Plugin
+	plugin.GetCatalog.ProcessResponse = cnt.catalog
+	plugin.Provision.ProcessRequest = cnt.preProvision
+	plugin.Provision.ProcessResponse = cnt.postProvision
+	return &plugin
+}
+
 // Counter is a plugin that appends a counter to service and plan ids
 type Counter struct {
 	counter int
 }
 
-func (c *Counter) Middleware(route string) rest.Middleware {
-	switch route {
-	case "osb/catalog":
-		return c.catalog
-	case "osb/provision":
-		return c.provision
-	default:
-		return nil
-	}
-}
-
-func (c *Counter) catalog(req *rest.Request, next rest.Handler) (*rest.Response, error) {
-	// call next middleware
-	res, err := next(req)
-
-	// modify response
-	if err == nil {
-		for _, v := range res.Body.(Object)["services"].(Array) {
-			v := v.(Object)
-			c.counter++
-			v["id"] = fmt.Sprintf("%s.%d", v["id"], c.counter)
+func (c *Counter) catalog(req *rest.Request, res *rest.Response) (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = p.(error)
 		}
+	}()
+
+	for _, v := range res.Body.(Object)["services"].(Array) {
+		v := v.(Object)
+		c.counter++
+		v["id"] = fmt.Sprintf("%s.%d", v["id"], c.counter)
 	}
-	return res, err
+	return nil
 }
 
-func (c *Counter) provision(req *rest.Request, next rest.Handler) (*rest.Response, error) {
+func (c *Counter) preProvision(req *rest.Request) (err error) {
 	c.counter++
 
 	// modify request
 	b := req.Body.(Object)
 	b["service_id"] = fmt.Sprintf("%s.%d", b["service_id"], c.counter)
 	b["plan_id"] = fmt.Sprintf("%s.%d", b["plan_id"], c.counter)
+	return nil
+}
 
-	// call next middleware
-	res, err := next(req)
-
+func (c *Counter) postProvision(req *rest.Request, res *rest.Response) (err error) {
 	// modify response
-	if err == nil {
-		b = res.Body.(Object)
-		b["operation"] = fmt.Sprintf("counter.%d", c.counter)
-	}
-	return res, err
+	b := res.Body.(Object)
+	b["operation"] = fmt.Sprintf("counter.%d", c.counter)
+	return nil
 }

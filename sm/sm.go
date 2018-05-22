@@ -18,7 +18,7 @@ type serviceManager struct {
 }
 
 type Options struct {
-	Plugins   []rest.Plugin
+	Plugins   []*rest.Plugin
 	BrokerURL string
 }
 
@@ -34,15 +34,31 @@ func NewServiceManager(options *Options) *serviceManager {
 
 func (sm *serviceManager) mountOSB(router *mux.Router) {
 	router.Path("/v2/catalog").Methods("GET").Handler(NewHTTPHandler(
-		sm.options.Plugins,
-		"osb/catalog",
+		catalogHandlers(sm.options.Plugins),
 		sm.catalogHandler,
 	))
 	router.Path("/v2/service_instances/{instance_id}").Methods("PUT").Handler(NewHTTPHandler(
-		sm.options.Plugins,
-		"osb/provision",
+		provisionHandlers(sm.options.Plugins),
 		sm.provisionHandler,
 	))
+}
+
+// Code duplication - needs reflection :(
+func catalogHandlers(plugins []*rest.Plugin) []*rest.Handler {
+	handlers := make([]*rest.Handler, len(plugins))
+	for i, p := range plugins {
+		handlers[i] = &p.GetCatalog
+	}
+	return handlers
+}
+
+// Code duplication - needs reflection :(
+func provisionHandlers(plugins []*rest.Plugin) []*rest.Handler {
+	handlers := make([]*rest.Handler, len(plugins))
+	for i, p := range plugins {
+		handlers[i] = &p.Provision
+	}
+	return handlers
 }
 
 func (sm *serviceManager) catalogHandler(req *rest.Request) (*rest.Response, error) {

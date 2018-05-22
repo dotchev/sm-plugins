@@ -33,12 +33,15 @@ func stringify(v interface{}) string {
 	return string(b)
 }
 
-type Handler func(*Request) (*Response, error)
-type Middleware func(req *Request, next Handler) (*Response, error)
+type Handler struct {
+	ProcessRequest  func(*Request) error
+	ProcessResponse func(*Request, *Response) error
+}
 
-// Plugin handles OSB operations by implementing some of the interfaces below
-type Plugin interface {
-	// Middleware returns a middleware for given route
-	// returns nil, if plugin has no middleware for this route
-	Middleware(route string) Middleware
+type Plugin struct {
+	GetCatalog Handler
+	Provision  Handler
+	Deproviosn Handler
+	Bind       Handler
+	Unbind     Handler
 }
