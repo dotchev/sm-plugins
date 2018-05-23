@@ -1,40 +1,44 @@
 package sm
 
 import (
-	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"github.com/gorilla/mux"
 
+	"github.com/dotchev/sm-plugins/sm/plugin/json"
 	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
 // SendJSON writes a JSON value and sets the specified HTTP Status code
-func SendJSON(writer http.ResponseWriter, code int, value interface{}) error {
+func SendJSON(writer http.ResponseWriter, code int, body *json.JSON) error {
 	writer.Header().Add("Content-Type", "application/json")
 	writer.WriteHeader(code)
-
-	encoder := json.NewEncoder(writer)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(value)
+	_, err := writer.Write([]byte(body.Pretty()))
+	return err
 }
 
 // ReadJSONBody parse request body
-func ReadJSONBody(request *http.Request, value interface{}) error {
+func ReadJSONBody(request *http.Request) (*json.JSON, error) {
 	contentType := request.Header.Get("Content-Type")
 	if !strings.Contains(contentType, "application/json") {
-		return fmt.Errorf("Invalid media type provided: %s", contentType)
+		return nil, fmt.Errorf("Invalid media type provided: %s", contentType)
 	}
-	decoder := json.NewDecoder(request.Body)
-	if err := decoder.Decode(value); err != nil {
-		return fmt.Errorf("Failed to decode request body: %s", err)
+
+	bytes, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	body, err := json.Parse(bytes)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to decode request body: %s", err)
+	}
+	return body, nil
 }
 
-func readOSBRequest(request *http.Request) (*rest.Request, error) {
+func readRequest(request *http.Request) (*rest.Request, error) {
 	pathParams := mux.Vars(request)
 
 	queryParams := map[string]string{}
@@ -42,9 +46,11 @@ func readOSBRequest(request *http.Request) (*rest.Request, error) {
 		queryParams[k] = v[0]
 	}
 
-	var body interface{}
+	body := &json.JSON{}
 	if request.Method == "PUT" || request.Method == "POST" {
-		if err := ReadJSONBody(request, &body); err != nil {
+		var err error
+		body, err = ReadJSONBody(request)
+		if err != nil {
 			return nil, err
 		}
 	}

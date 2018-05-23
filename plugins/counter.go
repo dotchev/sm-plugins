@@ -3,8 +3,7 @@ package plugins
 import (
 	"fmt"
 
-	. "github.com/dotchev/sm-plugins/sm/plugin/json"
-	"github.com/dotchev/sm-plugins/sm/plugin/rest"
+	. "github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
 // Counter is a plugin that appends a counter to service and plan ids
@@ -12,7 +11,7 @@ type Counter struct {
 	counter int
 }
 
-func (c *Counter) Middleware(route string) rest.Middleware {
+func (c *Counter) Middleware(route string) Middleware {
 	switch route {
 	case "osb/catalog":
 		return c.catalog
@@ -23,36 +22,36 @@ func (c *Counter) Middleware(route string) rest.Middleware {
 	}
 }
 
-func (c *Counter) catalog(req *rest.Request, next rest.Handler) (*rest.Response, error) {
+func (c *Counter) catalog(req *Request, next Handler) (*Response, error) {
 	// call next middleware
 	res, err := next(req)
 
 	// modify response
 	if err == nil {
-		for _, v := range res.Body.(Object)["services"].(Array) {
-			v := v.(Object)
+		for i, v := range res.Body.Get("services").Array() {
 			c.counter++
-			v["id"] = fmt.Sprintf("%s.%d", v["id"], c.counter)
+			res.Body.Set(fmt.Sprintf("services.%d.id", i),
+				fmt.Sprintf("%s.%d", v.Get("id"), c.counter))
 		}
 	}
 	return res, err
 }
 
-func (c *Counter) provision(req *rest.Request, next rest.Handler) (*rest.Response, error) {
+func (c *Counter) provision(req *Request, next Handler) (*Response, error) {
 	c.counter++
 
 	// modify request
-	b := req.Body.(Object)
-	b["service_id"] = fmt.Sprintf("%s.%d", b["service_id"], c.counter)
-	b["plan_id"] = fmt.Sprintf("%s.%d", b["plan_id"], c.counter)
+	req.Body.Set("service_id",
+		fmt.Sprintf("%s.%d", req.Body.Get("service_id"), c.counter))
+	req.Body.Set("plan_id",
+		fmt.Sprintf("%s.%d", req.Body.Get("plan_id"), c.counter))
 
 	// call next middleware
 	res, err := next(req)
 
 	// modify response
 	if err == nil {
-		b = res.Body.(Object)
-		b["operation"] = fmt.Sprintf("counter.%d", c.counter)
+		res.Body.Set("operation", fmt.Sprintf("counter.%d", c.counter))
 	}
 	return res, err
 }

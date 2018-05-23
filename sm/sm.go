@@ -1,10 +1,10 @@
 package sm
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
+	"github.com/dotchev/sm-plugins/sm/plugin/json"
 	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 	"github.com/gorilla/mux"
 	"github.com/parnurzeal/gorequest"
@@ -50,14 +50,16 @@ func (sm *serviceManager) catalogHandler(req *rest.Request) (*rest.Response, err
 
 	url := sm.options.BrokerURL + "/v2/catalog"
 	log.Printf("Requesting broker at %s", url)
-	resp, body, err := request.Get(url).End()
-	if err != nil {
-		log.Println(err)
+	resp, body, errors := request.Get(url).End()
+	if errors != nil {
+		log.Println(errors)
 	}
-	var reply interface{}
-	json.Unmarshal([]byte(body), &reply)
+	b, err := json.Parse([]byte(body))
+	if err != nil {
+		return nil, err
+	}
 	res := &rest.Response{
-		Body:       reply,
+		Body:       b,
 		StatusCode: resp.StatusCode,
 	}
 
@@ -72,14 +74,16 @@ func (sm *serviceManager) provisionHandler(req *rest.Request) (*rest.Response, e
 		sm.options.BrokerURL,
 		req.PathParams["instance_id"])
 	log.Printf("Requesting broker at %s", url)
-	resp, body, err := request.Put(url).Send(req.Body).End()
-	if err != nil {
-		log.Println(err)
+	resp, body, errors := request.Put(url).Send(req.Body).End()
+	if errors != nil {
+		log.Println(errors)
 	}
-	var reply interface{}
-	json.Unmarshal([]byte(body), &reply)
+	b, err := json.Parse([]byte(body))
+	if err != nil {
+		return nil, err
+	}
 	res := &rest.Response{
-		Body:       reply,
+		Body:       b,
 		StatusCode: resp.StatusCode,
 	}
 

@@ -21,16 +21,19 @@ func NewHTTPHandler(plugins []rest.Plugin, route string,
 }
 
 func (hh HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	restReq, err := readOSBRequest(req)
+	restReq, err := readRequest(req)
 	if err != nil {
-		SendJSON(res, 400, Object{"description": err.Error()})
+		var body JSON
+		body.Set("description", err.Error())
+		SendJSON(res, 400, &body)
 		return
 	}
 
 	restRes, err := hh.restHandler(restReq)
 	if err != nil {
-		log.Println(err)
-		SendJSON(res, 500, Object{"description": err.Error()})
+		var body JSON
+		body.Set("description", err.Error())
+		SendJSON(res, 500, &body)
 		return
 	}
 

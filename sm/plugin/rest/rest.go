@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"encoding/json"
+	"fmt"
 
 	. "github.com/dotchev/sm-plugins/sm/plugin/json"
 )
@@ -9,11 +9,14 @@ import (
 type Request struct {
 	PathParams  map[string]string
 	QueryParams map[string]string
-	Body        JSON
+	Body        *JSON
 }
 
 func (r *Request) String() string {
-	return stringify(r)
+	return fmt.Sprintf(`PathParams: %v
+QueryParams: %v
+Body: %s`,
+		r.PathParams, r.QueryParams, r.Body.Pretty())
 }
 
 type Response struct {
@@ -21,16 +24,13 @@ type Response struct {
 	StatusCode int
 
 	// Body is the response body parsed as JSON
-	Body JSON
+	Body *JSON
 }
 
 func (r *Response) String() string {
-	return stringify(r)
-}
-
-func stringify(v interface{}) string {
-	b, _ := json.MarshalIndent(v, "", "  ")
-	return string(b)
+	return fmt.Sprintf(`StatusCode: %d
+Body: %s`,
+		r.StatusCode, r.Body.Pretty())
 }
 
 type Handler func(*Request) (*Response, error)

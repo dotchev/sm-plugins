@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/dotchev/sm-plugins/sm"
-	. "github.com/dotchev/sm-plugins/sm/plugin/json"
+	"github.com/dotchev/sm-plugins/sm/plugin/json"
 )
 
 func Start() *httptest.Server {
@@ -18,26 +18,24 @@ func Start() *httptest.Server {
 }
 
 func getCatalog(res http.ResponseWriter, req *http.Request) {
-	catalog := Object{
-		"services": Array{
-			Object{
-				"name": "dummy",
-				"id":   "123",
-				"plans": Array{
-					Object{
-						"name": "default",
-						"id":   "789",
-					},
+	var body json.JSON
+	body.Set("services", []interface{}{
+		map[string]interface{}{
+			"name": "dummy",
+			"id":   "123",
+			"plans": []interface{}{
+				map[string]interface{}{
+					"name": "default",
+					"id":   "789",
 				},
 			},
 		},
-	}
-	sm.SendJSON(res, 200, catalog)
+	})
+	sm.SendJSON(res, 200, &body)
 }
 
 func provision(res http.ResponseWriter, req *http.Request) {
-	body := Object{
-		"dashboard_url": "http://service-dashboard",
-	}
-	sm.SendJSON(res, 201, body)
+	var body json.JSON
+	body.Set("dashboard_url", "http://service-dashboard")
+	sm.SendJSON(res, 201, &body)
 }
