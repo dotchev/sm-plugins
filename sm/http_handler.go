@@ -21,7 +21,7 @@ func NewHTTPHandler(plugins []rest.Plugin, route string,
 }
 
 func (hh HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	restReq, err := readOSBRequest(req)
+	restReq, err := readRequest(req)
 	if err != nil {
 		SendJSON(res, 400, Object{"description": err.Error()})
 		return
