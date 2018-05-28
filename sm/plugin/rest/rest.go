@@ -3,13 +3,13 @@ package rest
 import (
 	"encoding/json"
 
-	. "github.com/dotchev/sm-plugins/sm/plugin/json"
+	"github.com/bitly/go-simplejson"
 )
 
 type Request struct {
 	PathParams  map[string]string
 	QueryParams map[string]string
-	Body        JSON
+	Body        *simplejson.Json
 }
 
 func (r *Request) String() string {
@@ -21,7 +21,7 @@ type Response struct {
 	StatusCode int
 
 	// Body is the response body parsed as JSON
-	Body JSON
+	Body *simplejson.Json
 }
 
 func (r *Response) String() string {

@@ -3,7 +3,6 @@ package plugins
 import (
 	"fmt"
 
-	. "github.com/dotchev/sm-plugins/sm/plugin/json"
 	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
@@ -29,10 +28,13 @@ func (c *Counter) catalog(req *rest.Request, next rest.Handler) (*rest.Response,
 
 	// modify response
 	if err == nil {
-		for _, v := range res.Body.(Object)["services"].(Array) {
-			v := v.(Object)
+		services := res.Body.Get("services")
+		arr, _ := services.Array()
+		for i, _ := range arr {
+			v := services.GetIndex(i)
 			c.counter++
-			v["id"] = fmt.Sprintf("%s.%d", v["id"], c.counter)
+			id, _ := v.Get("id").String()
+			v.Set("id", fmt.Sprintf("%s.%d", id, c.counter))
 		}
 	}
 	return res, err
@@ -42,17 +44,19 @@ func (c *Counter) provision(req *rest.Request, next rest.Handler) (*rest.Respons
 	c.counter++
 
 	// modify request
-	b := req.Body.(Object)
-	b["service_id"] = fmt.Sprintf("%s.%d", b["service_id"], c.counter)
-	b["plan_id"] = fmt.Sprintf("%s.%d", b["plan_id"], c.counter)
+	b := req.Body
+	serviceid, _ := b.Get("service_id").String()
+	planid, _ := b.Get("plan_id").String()
+	b.Set("service_id", fmt.Sprintf("%s.%d", serviceid, c.counter))
+	b.Set("plan_id", fmt.Sprintf("%s.%d", planid, c.counter))
 
 	// call next middleware
 	res, err := next(req)
 
 	// modify response
 	if err == nil {
-		b = res.Body.(Object)
-		b["operation"] = fmt.Sprintf("counter.%d", c.counter)
+		b := res.Body
+		b.Set("operation", fmt.Sprintf("counter.%d", c.counter))
 	}
 	return res, err
 }

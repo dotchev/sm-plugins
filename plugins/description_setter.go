@@ -1,7 +1,6 @@
 package plugins
 
 import (
-	. "github.com/dotchev/sm-plugins/sm/plugin/json"
 	"github.com/dotchev/sm-plugins/sm/plugin/rest"
 )
 
@@ -24,9 +23,13 @@ func (DescriptionSetter) catalog(req *rest.Request, next rest.Handler) (*rest.Re
 
 	// modify response
 	if err == nil {
-		for _, v := range res.Body.(Object)["services"].(Array) {
-			v := v.(Object)
-			v["description"] = v["name"].(string) + "-" + v["id"].(string)
+		services := res.Body.Get("services")
+		arr, _ := services.Array()
+		for i, _ := range arr {
+			v := services.GetIndex(i)
+			name, _ := v.Get("name").String()
+			id, _ := v.Get("id").String()
+			v.Set("description", name+"-"+id)
 		}
 	}
 	return res, err

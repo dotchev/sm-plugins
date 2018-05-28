@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/bitly/go-simplejson"
+
 	"github.com/gorilla/mux"
 
 	"github.com/dotchev/sm-plugins/sm/plugin/rest"
@@ -22,16 +24,12 @@ func SendJSON(writer http.ResponseWriter, code int, value interface{}) error {
 }
 
 // ReadJSONBody parse request body
-func ReadJSONBody(request *http.Request, value interface{}) error {
+func ReadJSONBody(request *http.Request) (*simplejson.Json, error) {
 	contentType := request.Header.Get("Content-Type")
 	if !strings.Contains(contentType, "application/json") {
-		return fmt.Errorf("Invalid media type provided: %s", contentType)
+		return nil, fmt.Errorf("Invalid media type provided: %s", contentType)
 	}
-	decoder := json.NewDecoder(request.Body)
-	if err := decoder.Decode(value); err != nil {
-		return fmt.Errorf("Failed to decode request body: %s", err)
-	}
-	return nil
+	return simplejson.NewFromReader(request.Body)
 }
 
 func readRequest(request *http.Request) (*rest.Request, error) {
@@ -42,9 +40,10 @@ func readRequest(request *http.Request) (*rest.Request, error) {
 		queryParams[k] = v[0]
 	}
 
-	var body interface{}
+	var body *simplejson.Json
 	if request.Method == "PUT" || request.Method == "POST" {
-		if err := ReadJSONBody(request, &body); err != nil {
+		var err error
+		if body, err = ReadJSONBody(request); err != nil {
 			return nil, err
 		}
 	}
