@@ -57,6 +57,7 @@ func (sm *serviceManager) catalogHandler(req *rest.Request) (*rest.Response, err
 	var reply interface{}
 	json.Unmarshal([]byte(body), &reply)
 	res := &rest.Response{
+		Header:     resp.Header,
 		Body:       reply,
 		StatusCode: resp.StatusCode,
 	}
@@ -79,6 +80,7 @@ func (sm *serviceManager) provisionHandler(req *rest.Request) (*rest.Response, e
 	var reply interface{}
 	json.Unmarshal([]byte(body), &reply)
 	res := &rest.Response{
+		Header:     resp.Header,
 		Body:       reply,
 		StatusCode: resp.StatusCode,
 	}

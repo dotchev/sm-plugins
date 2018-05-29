@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"strconv"
 
 	. "github.com/dotchev/sm-plugins/sm/plugin/json"
 	"github.com/dotchev/sm-plugins/sm/plugin/rest"
@@ -24,14 +25,16 @@ func (c *Counter) Middleware(route string) rest.Middleware {
 }
 
 func (c *Counter) catalog(req *rest.Request, next rest.Handler) (*rest.Response, error) {
+	c.counter++
+
 	// call next middleware
 	res, err := next(req)
 
 	// modify response
 	if err == nil {
+		res.Header.Set("x-counter", strconv.Itoa(c.counter))
 		for _, v := range res.Body.(Object)["services"].(Array) {
 			v := v.(Object)
-			c.counter++
 			v["id"] = fmt.Sprintf("%s.%d", v["id"], c.counter)
 		}
 	}

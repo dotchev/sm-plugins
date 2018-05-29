@@ -34,6 +34,13 @@ func (hh HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// copy response headers
+	for k, v := range restRes.Header {
+		if k != "Content-Length" {
+			res.Header()[k] = v
+		}
+	}
+
 	code := restRes.StatusCode
 	if code == 0 {
 		code = 200

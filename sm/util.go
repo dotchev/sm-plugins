@@ -13,7 +13,7 @@ import (
 
 // SendJSON writes a JSON value and sets the specified HTTP Status code
 func SendJSON(writer http.ResponseWriter, code int, value interface{}) error {
-	writer.Header().Add("Content-Type", "application/json")
+	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(code)
 
 	encoder := json.NewEncoder(writer)
@@ -50,6 +50,7 @@ func readRequest(request *http.Request) (*rest.Request, error) {
 	}
 
 	return &rest.Request{
+		Request:     request,
 		PathParams:  pathParams,
 		QueryParams: queryParams,
 		Body:        body,

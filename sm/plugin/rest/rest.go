@@ -2,11 +2,13 @@ package rest
 
 import (
 	"encoding/json"
+	"net/http"
 
 	. "github.com/dotchev/sm-plugins/sm/plugin/json"
 )
 
 type Request struct {
+	*http.Request
 	PathParams  map[string]string
 	QueryParams map[string]string
 	Body        JSON
@@ -19,6 +21,8 @@ func (r *Request) String() string {
 type Response struct {
 	// StatusCode is the HTTP status code
 	StatusCode int
+
+	Header http.Header
 
 	// Body is the response body parsed as JSON
 	Body JSON
