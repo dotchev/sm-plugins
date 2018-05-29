@@ -31,10 +31,14 @@ func (c *Counter) catalog(req *rest.Request, next rest.Handler) (*rest.Response,
 		services := res.Body.Get("services")
 		arr, _ := services.Array()
 		for i, _ := range arr {
-			v := services.GetIndex(i)
-			c.counter++
-			id, _ := v.Get("id").String()
-			v.Set("id", fmt.Sprintf("%s.%d", id, c.counter))
+			service := services.GetIndex(i)
+			// same as service.GetPath("metadata", "provider", "name").String()
+			provider, _ := service.Get("metadata").Get("provider").Get("name").String()
+			if provider != "SAP" {
+				c.counter++
+				id, _ := service.Get("id").String()
+				service.Set("id", fmt.Sprintf("%s.%d", id, c.counter))
+			}
 		}
 	}
 	return res, err
